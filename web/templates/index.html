@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeChat2Report 管理面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WeChat2Report 管理面板</h1>
+            <nav>
+                <ul>
+                    <li><a href="#dashboard" class="active" data-tab="dashboard">仪表盘</a></li>
+                    <li><a href="#settings" data-tab="settings">设置</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <h2>后台任务执行历史</h2>
+                <div class="card">
+                    <table id="task-history-table">
+                        <thead>
+                            <tr>
+                                <th>执行时间</th>
+                                <th>状态</th>
+                                <th>HTTP 状态码</th>
+                                <th>响应内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if task_history.tasks %}
+                                {% for task in task_history.tasks|reverse %}
+                                <tr>
+                                    <td>{{ task.time }}</td>
+                                    <td class="{{ 'success' if task.status == 'success' else 'error' }}">
+                                        {{ "成功" if task.status == "success" else "失败" }}
+                                    </td>
+                                    <td>{{ task.response.status_code if task.response and task.response.status_code else "N/A" }}</td>
+                                    <td class="response-content">
+                                        <div class="truncate">
+                                            {{ task.response.content if task.response and task.response.content else "N/A" }}
+                                        </div>
+                                        {% if task.response and task.response.content %}
+                                        <button class="toggle-content">展开</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="no-data">暂无任务执行记录</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <div class="refresh-container">
+                        <button id="refresh-tasks">刷新</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="settings" class="tab-content">
+                <h2>配置设置</h2>
+                
+                <!-- Irrelevant Groups Configuration -->
+                <div class="card">
+                    <h3>不相关的群组</h3>
+                    <p class="description">这些群组的消息将被过滤掉，不会出现在处理后的聊天记录中</p>
+                    <div class="form-group">
+                        <div id="irrelevant-groups-container">
+                            <ul id="irrelevant-groups-list" class="editable-list"></ul>
+                            <div class="add-item-container">
+                                <input type="text" id="new-group-input" placeholder="输入新群组名称">
+                                <button id="add-group-btn">添加</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="save-irrelevant-groups" class="primary">保存</button>
+                    </div>
+                </div>
+                
+                <!-- Decrypt Configuration -->
+                <div class="card">
+                    <h3>解密配置</h3>
+                    <p class="description">设置 WeChat 数据库解密所需的参数</p>
+                    <div id="decrypt-params-form" class="form-group">
+                        <div class="param-field">
+                            <label for="wx_dir">微信目录 (wx_dir):</label>
+                            <input type="text" id="wx_dir" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="filePath">文件路径 (filePath):</label>
+                            <input type="text" id="filePath" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="key">密钥 (key):</label>
+                            <input type="text" id="key" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="mobile">手机号 (mobile):</label>
+                            <input type="text" id="mobile" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="name">姓名 (name):</label>
+                            <input type="text" id="name" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="pid">进程ID (pid):</label>
+                            <input type="number" id="pid" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="version">版本 (version):</label>
+                            <input type="text" id="version" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="wxid">微信ID (wxid):</label>
+                            <input type="text" id="wxid" class="decrypt-param">
+                        </div>
+                        <div class="param-field">
+                            <label for="mobel">手机型号 (mobel):</label>
+                            <input type="text" id="mobel" class="decrypt-param">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="save-decrypt-params" class="primary">保存</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 WeChat2Report</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+__pycache__/
+config/
+data/
+report/
+tmp/
+*.log
+messages.csv
+DataBase/Msg/
