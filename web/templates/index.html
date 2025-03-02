@@ -68,21 +68,34 @@
             <section id="settings" class="tab-content">
                 <h2>配置设置</h2>
                 
-                <!-- Irrelevant Groups Configuration -->
+                <!-- Group Tags Configuration -->
                 <div class="card">
-                    <h3>不相关的群组</h3>
-                    <p class="description">这些群组的消息将被过滤掉，不会出现在处理后的聊天记录中</p>
+                    <h3>群组标签设置</h3>
+                    <p class="description">为CSV文件设置标签，将不同的群组名称归为同一个客户</p>
                     <div class="form-group">
-                        <div id="irrelevant-groups-container">
-                            <ul id="irrelevant-groups-list" class="editable-list"></ul>
-                            <div class="add-item-container">
-                                <input type="text" id="new-group-input" placeholder="输入新群组名称">
-                                <button id="add-group-btn">添加</button>
+                        <div id="group-tags-container">
+                            <div class="csv-files-list">
+                                <h4>CSV文件列表</h4>
+                                <ul id="csv-files-list" class="editable-list"></ul>
                             </div>
+                            <div class="tag-editor">
+                                <h4>标签编辑</h4>
+                                <div class="selected-file-info">
+                                    <p>当前选择: <span id="selected-file">未选择</span></p>
+                                </div>
+                                <div class="tag-input-container">
+                                    <input type="text" id="tag-input" placeholder="输入标签名称">
+                                    <button id="apply-tag-btn">应用标签</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tags-summary">
+                            <h4>标签汇总</h4>
+                            <ul id="tags-summary-list" class="editable-list"></ul>
                         </div>
                     </div>
                     <div class="button-group">
-                        <button id="save-irrelevant-groups" class="primary">保存</button>
+                        <button id="save-group-tags" class="primary">保存</button>
                     </div>
                 </div>
                 

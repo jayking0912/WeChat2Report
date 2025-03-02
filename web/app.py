@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import glob
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -40,10 +41,20 @@ def add_task_record(status, response=None):
     save_task_history(task_history)
 
 # Routes
+# Get CSV files from data/other directory
+def get_csv_files():
+    csv_files = []
+    csv_path = os.path.join('data', 'other', '*.csv')
+    for file_path in glob.glob(csv_path):
+        filename = os.path.basename(file_path)
+        csv_files.append(filename)
+    return csv_files
+
 @app.route('/')
 def index():
     task_history = load_task_history()
-    irrelevant_groups = load_config('config/irrelevant_groups.json') or []
+    csv_files = get_csv_files()
+    group_tags = load_config('config/group_tags.json') or {}
     decrypt_params = load_config('config/decrypt_params.json') or {
         "db_path": "",
         "key": "",
@@ -52,18 +63,24 @@ def index():
     }
     return render_template('index.html', 
                           task_history=task_history,
-                          irrelevant_groups=irrelevant_groups,
+                          csv_files=csv_files,
+                          group_tags=group_tags,
                           decrypt_params=decrypt_params)
 
-@app.route('/api/irrelevant_groups', methods=['GET', 'POST'])
-def manage_irrelevant_groups():
+@app.route('/api/csv_files', methods=['GET'])
+def get_csv_files_api():
+    csv_files = get_csv_files()
+    return jsonify({"files": csv_files})
+
+@app.route('/api/group_tags', methods=['GET', 'POST'])
+def manage_group_tags():
     if request.method == 'POST':
-        groups = request.json.get('groups', [])
-        save_config('config/irrelevant_groups.json', groups)
+        tags = request.json
+        save_config('config/group_tags.json', tags)
         return jsonify({"status": "success"})
     else:
-        irrelevant_groups = load_config('config/irrelevant_groups.json') or []
-        return jsonify({"groups": irrelevant_groups})
+        group_tags = load_config('config/group_tags.json') or {}
+        return jsonify(group_tags)
 
 @app.route('/api/decrypt_params', methods=['GET', 'POST'])
 def manage_decrypt_params():

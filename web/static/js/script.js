@@ -1,4 +1,4 @@
- document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Tab switching functionality
     const tabLinks = document.querySelectorAll('nav a');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -100,98 +100,214 @@
             });
     });
     
-    // Irrelevant groups list functionality
-    const irrelevantGroupsList = document.getElementById('irrelevant-groups-list');
-    const newGroupInput = document.getElementById('new-group-input');
-    const addGroupBtn = document.getElementById('add-group-btn');
-    let groupsData = [];
+    // Group tags functionality
+    const csvFilesList = document.getElementById('csv-files-list');
+    const tagInput = document.getElementById('tag-input');
+    const applyTagBtn = document.getElementById('apply-tag-btn');
+    const selectedFileSpan = document.getElementById('selected-file');
+    const tagsSummaryList = document.getElementById('tags-summary-list');
     
-    // Function to render groups list
-    function renderGroupsList() {
-        irrelevantGroupsList.innerHTML = '';
+    let csvFiles = [];
+    let groupTagsData = {}; // 新格式: { "标签": ["文件1.csv", "文件2.csv"] }
+    let selectedFile = null;
+    
+    // 获取文件对应的标签
+    function getTagForFile(file) {
+        for (const [tag, files] of Object.entries(groupTagsData)) {
+            if (files.includes(file)) {
+                return tag;
+            }
+        }
+        return null;
+    }
+    
+    // 从文件中移除标签
+    function removeFileFromTags(file) {
+        for (const [tag, files] of Object.entries(groupTagsData)) {
+            const index = files.indexOf(file);
+            if (index !== -1) {
+                files.splice(index, 1);
+                // 如果标签下没有文件了，删除这个标签
+                if (files.length === 0) {
+                    delete groupTagsData[tag];
+                }
+                return;
+            }
+        }
+    }
+    
+    // Function to render CSV files list
+    function renderCsvFilesList() {
+        csvFilesList.innerHTML = '';
         
-        groupsData.forEach((group, index) => {
+        csvFiles.forEach(file => {
+            const li = document.createElement('li');
+            li.className = selectedFile === file ? 'selected' : '';
+            
+            const fileNameSpan = document.createElement('span');
+            fileNameSpan.textContent = file;
+            fileNameSpan.className = 'file-name';
+            
+            const tag = getTagForFile(file);
+            if (tag) {
+                fileNameSpan.innerHTML += ` <span class="tag-badge">${tag}</span>`;
+            }
+            
+            li.appendChild(fileNameSpan);
+            
+            li.addEventListener('click', () => {
+                selectedFile = file;
+                selectedFileSpan.textContent = file;
+                // Update selected state in UI
+                document.querySelectorAll('#csv-files-list li').forEach(item => {
+                    item.className = '';
+                });
+                li.className = 'selected';
+                
+                // Pre-fill tag input if file already has a tag
+                tagInput.value = getTagForFile(file) || '';
+            });
+            
+            csvFilesList.appendChild(li);
+        });
+    }
+    
+    // Function to render tags summary
+    function renderTagsSummary() {
+        tagsSummaryList.innerHTML = '';
+        
+        // 直接使用新格式的groupTagsData
+        for (const [tag, files] of Object.entries(groupTagsData)) {
             const li = document.createElement('li');
             
-            const groupName = document.createElement('span');
-            groupName.textContent = group;
-            li.appendChild(groupName);
+            const tagName = document.createElement('div');
+            tagName.className = 'tag-name';
+            tagName.textContent = tag;
+            li.appendChild(tagName);
+            
+            const filesList = document.createElement('div');
+            filesList.className = 'tag-files';
+            filesList.textContent = files.join(', ');
+            li.appendChild(filesList);
             
             const deleteBtn = document.createElement('button');
             deleteBtn.textContent = '删除';
             deleteBtn.className = 'delete-btn';
             deleteBtn.addEventListener('click', () => {
-                groupsData.splice(index, 1);
-                renderGroupsList();
+                // 删除这个标签
+                delete groupTagsData[tag];
+                renderCsvFilesList();
+                renderTagsSummary();
             });
             
             li.appendChild(deleteBtn);
-            irrelevantGroupsList.appendChild(li);
-        });
+            tagsSummaryList.appendChild(li);
+        }
     }
     
-    // Add new group
-    addGroupBtn.addEventListener('click', function() {
-        const newGroup = newGroupInput.value.trim();
-        if (newGroup) {
-            groupsData.push(newGroup);
-            newGroupInput.value = '';
-            renderGroupsList();
+    // Apply tag to selected file
+    applyTagBtn.addEventListener('click', function() {
+        const tag = tagInput.value.trim();
+        if (selectedFile && tag) {
+            // 先从所有标签中移除该文件
+            removeFileFromTags(selectedFile);
+            
+            // 将文件添加到新标签中
+            if (!groupTagsData[tag]) {
+                groupTagsData[tag] = [];
+            }
+            groupTagsData[tag].push(selectedFile);
+            
+            renderCsvFilesList();
+            renderTagsSummary();
+        } else if (!selectedFile) {
+            alert('请先选择一个CSV文件');
+        } else {
+            alert('请输入标签名称');
         }
     });
     
-    // Add group on Enter key
-    newGroupInput.addEventListener('keypress', function(e) {
+    // Apply tag on Enter key
+    tagInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            const newGroup = newGroupInput.value.trim();
-            if (newGroup) {
-                groupsData.push(newGroup);
-                newGroupInput.value = '';
-                renderGroupsList();
+            const tag = tagInput.value.trim();
+            if (selectedFile && tag) {
+                // 先从所有标签中移除该文件
+                removeFileFromTags(selectedFile);
+                
+                // 将文件添加到新标签中
+                if (!groupTagsData[tag]) {
+                    groupTagsData[tag] = [];
+                }
+                groupTagsData[tag].push(selectedFile);
+                
+                renderCsvFilesList();
+                renderTagsSummary();
+            } else if (!selectedFile) {
+                alert('请先选择一个CSV文件');
+            } else {
+                alert('请输入标签名称');
             }
         }
     });
     
-    // Load initial groups data
-    fetch('/api/irrelevant_groups')
+    // Load CSV files
+    fetch('/api/csv_files')
         .then(response => response.json())
         .then(data => {
-            if (data.groups && Array.isArray(data.groups)) {
-                groupsData = data.groups;
-                renderGroupsList();
-            } else if (Array.isArray(data)) {
-                // For backward compatibility
-                groupsData = data;
-                renderGroupsList();
+            if (data.files && Array.isArray(data.files)) {
+                csvFiles = data.files;
+                renderCsvFilesList();
             }
         })
         .catch(error => {
-            console.error('Error loading irrelevant groups:', error);
+            console.error('Error loading CSV files:', error);
             // If API call fails, try to parse from the rendered JSON
             try {
-                const initialGroups = JSON.parse('{{ irrelevant_groups|tojson }}');
-                if (Array.isArray(initialGroups)) {
-                    groupsData = initialGroups;
-                    renderGroupsList();
+                const initialFiles = JSON.parse('{{ csv_files|tojson }}');
+                if (Array.isArray(initialFiles)) {
+                    csvFiles = initialFiles;
+                    renderCsvFilesList();
                 }
             } catch (err) {
-                console.error('Error parsing initial groups:', err);
+                console.error('Error parsing initial CSV files:', err);
             }
         });
     
-    // Save irrelevant groups configuration
-    document.getElementById('save-irrelevant-groups').addEventListener('click', function() {
-        fetch('/api/irrelevant_groups', {
+    // Load initial group tags data
+    fetch('/api/group_tags')
+        .then(response => response.json())
+        .then(data => {
+            groupTagsData = data || {};
+            renderCsvFilesList();
+            renderTagsSummary();
+        })
+        .catch(error => {
+            console.error('Error loading group tags:', error);
+            // If API call fails, try to parse from the rendered JSON
+            try {
+                const initialTags = JSON.parse('{{ group_tags|tojson }}');
+                groupTagsData = initialTags || {};
+                renderCsvFilesList();
+                renderTagsSummary();
+            } catch (err) {
+                console.error('Error parsing initial group tags:', err);
+            }
+        });
+    
+    // Save group tags configuration
+    document.getElementById('save-group-tags').addEventListener('click', function() {
+        fetch('/api/group_tags', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ groups: groupsData })
+            body: JSON.stringify(groupTagsData)
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('不相关群组配置已保存');
+                alert('群组标签配置已保存');
             } else {
                 alert('保存失败: ' + (data.message || '未知错误'));
             }
@@ -214,8 +330,8 @@
         
         // Fill each input field with its corresponding value
         for (const field of decryptFields) {
-            const inputElement = document.getElementById(field);
-            if (inputElement && params[field] !== undefined) {
+            const inputElement = document.getElementById(`decrypt-${field}`);
+            if (inputElement && params[field]) {
                 inputElement.value = params[field];
             }
         }
@@ -240,22 +356,16 @@
     
     // Save decrypt parameters
     document.getElementById('save-decrypt-params').addEventListener('click', function() {
-        // Gather values from all input fields
         const params = {};
+        
+        // Collect values from all input fields
         for (const field of decryptFields) {
-            const inputElement = document.getElementById(field);
+            const inputElement = document.getElementById(`decrypt-${field}`);
             if (inputElement) {
-                // Convert to number if the field is pid
-                if (field === 'pid') {
-                    const value = parseInt(inputElement.value);
-                    params[field] = isNaN(value) ? null : value;
-                } else {
-                    params[field] = inputElement.value;
-                }
+                params[field] = inputElement.value.trim();
             }
         }
         
-        // Send data to server
         fetch('/api/decrypt_params', {
             method: 'POST',
             headers: {
@@ -266,7 +376,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('解密参数配置已保存');
+                alert('解密参数已保存');
             } else {
                 alert('保存失败: ' + (data.message || '未知错误'));
             }
