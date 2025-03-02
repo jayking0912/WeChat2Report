@@ -371,19 +371,36 @@ def output_saveMeetingCSV(content):
     #5.  将 modified_rows 重新组合成 CSV 格式的字符串
     #modified_content = ""
     if modified_rows:
-        os.makedirs(data_dir, exist_ok=True)  # 确保 data 文件夹存在
-        file_exists = os.path.exists(wechat_file)
-        try:
-            with open(wechat_file, 'a', newline='', encoding='utf-8') as csvfile:
-                csv_writer = csv.writer(csvfile)
-                if not file_exists:
-                    # 写入 CSV 文件头
-                    csv_writer.writerow(['StrContent','StrTime','remark', 'nick_name', 'sender'])
-                # 写入会议纪要数据
-                csv_writer.writerows(modified_rows)
-            print(f"成功提取并保存 {len(modified_rows)} 条剩余记录到 {wechat_file}")
-        except Exception as e:
-            print(f"保存剩余记录到 CSV 文件出错。错误信息：{e}")
+        other_dir = os.path.join(data_dir, 'other') # 定义 other 文件夹路径
+        os.makedirs(other_dir, exist_ok=True)  # 确保 other 文件夹存在
+
+        nick_name_data = {} # 用于存储按 nick_name 划分的数据
+
+        for row in modified_rows:
+            nick_name = row[3] if len(row) > 3 else "未知用户" # 获取 nick_name，如果不存在则设置为 "未知用户"
+            if nick_name not in nick_name_data:
+                nick_name_data[nick_name] = []
+            nick_name_data[nick_name].append(row)
+
+        for nick_name, data_rows in nick_name_data.items():
+            if not data_rows: # 如果某个 nick_name 没有数据，则跳过
+                continue
+
+            csv_file_name = f"{nick_name}.csv" # 以 nick_name 命名 CSV 文件
+            csv_file_path = os.path.join(other_dir, csv_file_name) # 完整的 CSV 文件路径
+
+            file_exists = os.path.exists(csv_file_path)
+            try:
+                with open(csv_file_path, 'w', newline='', encoding='utf-8') as csvfile: # 使用 'w' 模式，每次都重新写入文件
+                    csv_writer = csv.writer(csvfile)
+                    if not file_exists:
+                        # 写入 CSV 文件头 (每个文件都写入文件头)
+                        csv_writer.writerow(['StrContent','StrTime','remark', 'nick_name', 'sender'])
+                    # 写入数据
+                    csv_writer.writerows(data_rows)
+                print(f"成功保存 {len(data_rows)} 条记录到 {csv_file_path}")
+            except Exception as e:
+                print(f"保存 {nick_name} 的记录到 CSV 文件出错。错误信息：{e}")
     else:
         print("没有找到剩余记录。")
 
