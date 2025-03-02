@@ -330,8 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Fill each input field with its corresponding value
         for (const field of decryptFields) {
-            const inputElement = document.getElementById(`decrypt-${field}`);
-            if (inputElement && params[field]) {
+            const inputElement = document.getElementById(field);
+            if (inputElement && params[field] !== undefined) {
                 inputElement.value = params[field];
             }
         }
@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Collect values from all input fields
         for (const field of decryptFields) {
-            const inputElement = document.getElementById(`decrypt-${field}`);
+            const inputElement = document.getElementById(field);
             if (inputElement) {
                 params[field] = inputElement.value.trim();
             }
