@@ -406,7 +406,89 @@ def output_saveMeetingCSV(content):
 
 
     # return modified_content
-
+def output_tagCSV(startTime, endTime):
+    print(f'开始按标签导出CSV，时间范围：{startTime} 至 {endTime}')
+    
+    # 确保tmp文件夹存在
+    os.makedirs('tmp', exist_ok=True)
+    
+    # 加载标签配置
+    tags_config = load_config('config/group_tags.json', {})
+    if not tags_config:
+        print('未找到标签配置文件或配置为空')
+        return
+    
+    # 将时间字符串转换为datetime对象
+    try:
+        start_datetime = datetime.strptime(startTime, '%Y-%m-%d')
+        end_datetime = datetime.strptime(endTime, '%Y-%m-%d')
+        # 将结束时间设置为当天的23:59:59
+        end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+    except ValueError as e:
+        print(f'时间格式错误: {e}')
+        return
+    
+    # 源数据文件夹
+    source_dir = os.path.join('data', 'other')
+    if not os.path.exists(source_dir):
+        print(f'源数据文件夹 {source_dir} 不存在')
+        return
+    
+    # 遍历标签配置
+    for tag, csv_files in tags_config.items():
+        print(f'处理标签: {tag}')
+        
+        # 用于存储该标签下所有符合时间范围的数据
+        all_tag_data = []
+        has_data = False
+        
+        # 遍历该标签下的所有CSV文件
+        for csv_file in csv_files:
+            csv_path = os.path.join(source_dir, csv_file)
+            
+            if not os.path.exists(csv_path):
+                print(f'  文件不存在: {csv_file}')
+                continue
+            
+            try:
+                # 读取CSV文件
+                df = pd.read_csv(csv_path, encoding='utf-8')
+                
+                # 确保StrTime列存在
+                if 'StrTime' not in df.columns:
+                    print(f'  文件 {csv_file} 中没有StrTime列')
+                    continue
+                
+                # 将StrTime列转换为datetime类型
+                df['StrTime'] = pd.to_datetime(df['StrTime'], errors='coerce')
+                
+                # 筛选时间范围内的数据
+                filtered_df = df[(df['StrTime'] >= start_datetime) & (df['StrTime'] <= end_datetime)]
+                
+                if not filtered_df.empty:
+                    all_tag_data.append(filtered_df)
+                    has_data = True
+                    print(f'  从 {csv_file} 中找到 {len(filtered_df)} 条符合时间范围的数据')
+                
+            except Exception as e:
+                print(f'  处理文件 {csv_file} 时出错: {e}')
+        
+        # 如果该标签下有符合时间范围的数据，则保存为CSV
+        if has_data and all_tag_data:
+            # 合并该标签下所有数据
+            combined_df = pd.concat(all_tag_data, ignore_index=True)
+            
+            # 按时间排序
+            combined_df.sort_values('StrTime', inplace=True)
+            
+            # 保存到tmp文件夹
+            output_file = os.path.join('tmp', f'{tag}.csv')
+            combined_df.to_csv(output_file, index=False, encoding='utf-8-sig')
+            print(f'  已保存 {len(combined_df)} 条数据到 {output_file}')
+        else:
+            print(f'  标签 {tag} 在指定时间范围内没有数据，跳过生成CSV')
+    
+    print('按标签导出CSV完成')
 
 def output_task():
     #csv_filepath = find_latest_message_file('tmp')
@@ -416,6 +498,8 @@ def output_task():
             csv_content = f.read()
             #先提取出会议纪要和日报
             output_saveMeetingCSV(csv_content)
+            #todo 继续按照标签导出客户csv
+            output_tagCSV('2025-02-01','2025-02-28')
             print('finish')
     except Exception as e:
         print(f"读取CSV文件时发生错误: {e}")
